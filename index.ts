@@ -3,11 +3,18 @@
 //This must be at the top of the application entry file.
 var reflect = require('reflect-metadata');
 
-import {platform, reflector, Injector, Injectable} from "angular2/core";
+import {Application} from "./Application.Common/Application";
+import {Injector} from "angular2/core";
 import {TodoService} from "./Application.Todo/TodoService";
 import {TodoDispatcher} from "./Application.Todo/TodoDispatcher";
+import {FrameworkService} from "./Application.Framework/FrameworkService";
+import {DataService} from "./Application.Common/DataService";
 
-let injector = Injector.resolveAndCreate([TodoDispatcher, TodoService]);
-let todoDispatcher = injector.get(TodoDispatcher);
+let dataService = Application.injector.get(DataService);
+dataService.foo = 'barrrr';
 
-console.log(todoDispatcher.test())
+//let todoDispatcher = getInjector().get(TodoDispatcher);
+//let frameworkService = Application.injector.get(FrameworkService);
+let todoDispatcher = Application.injector.get(TodoDispatcher);
+
+//todoDispatcher.start();
