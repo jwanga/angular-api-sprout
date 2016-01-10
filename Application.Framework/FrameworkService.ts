@@ -3,7 +3,8 @@ import * as bodyParser from 'body-parser';
 
 import {Injectable} from "angular2/core";
 import {ReplaySubject, Observable} from "rxjs";
-import {DataService} from "../Application.Common/DataService"
+import {DataService} from "../Application.Common/DataService";
+import {IStatus} from "../Application.Common/IStatus";
 
 /**
  * Instantiates the specific framework that will run the API
@@ -23,21 +24,38 @@ export class FrameworkService {
     
     /**
      * Creates a new route and returns an observable that resolves when a post is made to the specified route.
-     * @param {Type} T The type expected back from the post.
      * @param {string} route The route to listen to.
-     * @return {Observable<T>} An observable that resolves to the generic type.
+     * @return {Observable<IFrameworkServiceResponse>} An observable that resolves to a IFrameworkServiceResponse.
      */
-    on<T>(route: string): Observable<T> {
+    on(route: string): Observable<IFrameworkServiceResponse> {
         
-        let subject = new ReplaySubject(1);
+        let subject = new ReplaySubject<IFrameworkServiceResponse>(1);
         
         this.framework.route(route).post((request: any, response: any) => {
-            response.send(route);
-            subject.next(request.body);
+            let frameworkResponse: IFrameworkServiceResponse = {
+                    body: request.body,
+                    callback: (status) => {
+                        let code = status.code,
+                            body = {
+                                message: status.message
+                            };
+                            
+                        response.status(code).send(body);   
+                    }
+                }
+                
+            subject.next(frameworkResponse);
         });
-        
         return subject;
     }
+}
+
+/**
+ * Defines the 
+ */
+export interface IFrameworkServiceResponse {
+    body: JSON;
+    callback: (status: IStatus) => void;
 }
 
 

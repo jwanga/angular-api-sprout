@@ -1,26 +1,35 @@
 import {Injector, Injectable, platform, Type, OnInit} from "angular2/core";
 
-var Application = require('../Application.Common/Application.js');
-
-//import {Application} from "../Application.Common/Application";
+import {ReplaySubject, Observable} from "rxjs";
+import {Application} from "../Application.Common/Application";
 import {FrameworkService} from "../Application.Framework/FrameworkService";
 import {TodoService} from "../Application.Todo/TodoService";
 import {TodoDispatcher} from "../Application.Todo/TodoDispatcher";
-import {ITodoModel} from "../Application.Todo/ITodoModel";
+import {TodoModel} from "../Application.Todo/TodoModel";
+import {IStatus} from "../Application.Common/IStatus";
 
 /**
  * Defines the members used in creating an API service
  */
-@Injectable()
 export class AbstractApi implements IApiMetaData{
     constructor(frameworkService: FrameworkService) {
-       this.registerActions();
+       this.registerActions(frameworkService);
     }
     
-    private registerActions () {
+    /**
+     * Registers each action with the framework service.
+     */
+    private registerActions (frameworkService: FrameworkService) {
         this.actions.forEach((action) => {
-            this.frameworkService.on<any>(this.route + action.metadata.route).subscribe((data) => {
-                action.callback(data);
+            frameworkService.on(this.route + action.metadata.route).subscribe((response) => {
+                
+                
+                (<Observable<IStatus>> action.callback.call(this ,response.body)).subscribe((status) => {
+                    response.callback(status)
+                }, (status) => {
+                    response.callback(status)
+                });
+                
             }, (error) => {
                 console.error('error', error);
             });
@@ -28,8 +37,7 @@ export class AbstractApi implements IApiMetaData{
     }
     
     route: string;
-    frameworkService: FrameworkService;
-    actions: Array<{metadata: IActionMetaData; callback: Function}>;
+    actions: Array<IAction>;
     [index: string]: any;
     
 }
@@ -46,6 +54,14 @@ export interface IApiMetaData{
  */
 export interface IActionMetaData{ 
     route: string; 
+}
+
+/**
+ * Defines the an action.
+ */
+export interface IAction{ 
+    metadata: IActionMetaData; 
+    callback: (model: JSON) =>  Observable<IStatus>;
 }
 
 /**
@@ -71,7 +87,7 @@ export function Action (metadata: IActionMetaData) {
         //add this action to the collection.
         target.actions.push({
             metadata: metadata,
-            callback: <Function>target[key]
+            callback: target[key]
         });
         
         return descriptor;
