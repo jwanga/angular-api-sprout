@@ -66,7 +66,7 @@ export function Validate (metadata: IValidateMetaData) {
             existingValidation.valid = metadata.validators.every((validator) => {
                 let validity = validator(key, value);
                 if(validity.message){
-                    existingValidation.message += validity.message;
+                    existingValidation.message = validity.message;
                 }
                 return validity.valid;  
             });
