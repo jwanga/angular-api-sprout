@@ -1,31 +1,42 @@
 
 import {Injectable, Inject} from "angular2/core";
+import {ReplaySubject, Observable} from "rxjs";
 import {TodoService} from "./TodoService";
-import {ITodoModel} from "./ITodoModel";
+import {TodoModel} from "./TodoModel";
 import {Api, AbstractApi, Action} from "../Application.Common/Api";
 import {FrameworkService} from "../Application.Framework/FrameworkService";
+import {IStatus} from "../Application.Common/IStatus";
 
 
 
 @Api({
-    route: '/Todo'
+    route: '/todo'
 })
 @Injectable()
 export class TodoDispatcher extends AbstractApi {
-    //constructor(){
-    constructor(private todoService: TodoService, private FrameworkService: FrameworkService){
-        super(FrameworkService);
+    constructor(private todoService: TodoService, frameworkService: FrameworkService){
+        super(frameworkService);
+        this.todoService = todoService;
     }
     
     /**
-     * Updates or creates a Todo model
-     * 
-     * @param {ITodoModel} model The model to update or create.
+     * Creates a Todo model.
+     * @param {JSON} json The json representation of the model be created.
      */
     @Action({
-        route: '/Update'
+        route: '/create'
     })
-    Update(model: ITodoModel) {
-        console.log('update', model);
+    create(json: JSON): Observable<IStatus> {
+        let subject = new ReplaySubject<IStatus>(1);
+        
+        this.todoService.create(json).subscribe((status) => {
+            subject.next(status);
+        }, (status) => {
+            subject.error(status);
+        }, () => {
+            subject.complete();
+        });
+        
+        return subject;
     }
 }
