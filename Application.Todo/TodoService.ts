@@ -20,9 +20,7 @@ export class TodoService {
         let subject = new ReplaySubject(1),
             status: IStatus,
             model = new TodoModel(json),
-            validity = model.getValidity();
-            
-        console.log('service update', model);
+            validity = model.getValidity(['value','done']);
         
         if(validity.valid){ 
             status = this.statusService.OK;
