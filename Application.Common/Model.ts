@@ -19,14 +19,17 @@ export class AbstractModel {
     
     /**
      * returns the validity of a model and any valididation mesasges
+     * @param {Array<string>} properties An optional collection of properties to validate.
      * @return {{valid: boolean; message: string}} An object indicating the validity of a model and any validation messages.
      */
-    public getValidity () : {valid: boolean; message: string}{
+    public getValidity (properties?: Array<string>) : {valid: boolean; message: string}{
         let valid: boolean = true, message: string = ""
         
         if(this.properties){
             this.properties.forEach((property, index) => {
-                if(property.metadata && property.metadata.validators){
+                console.log(properties)
+                //if the properties parameter hasbeen passed then only validate properties that appear in the properties list.
+                if((properties && properties.indexOf(property.key) > -1) || ( !properties && property.metadata && property.metadata.validators)){
                     property.metadata.validators.forEach((validator) => {
                         let validity = validator(property.key, this[property.key]);
                         
@@ -89,17 +92,11 @@ export function PatternValidator(pattern: RegExp): IValidator {
                 //if the value is null or undefined it is valid because we leave null checks
                 //to the required validator.
                 valid = true;    
-            }
-            else {
+            } else {
                 //check to ensure that te value is a string.
                 valid = pattern.test(value);
                 message = valid ? null : key.toString() + ' must match the pattern ' + pattern;
             } 
-            // else {
-            //     valid = false
-            //     message = key.toString() + ' must be a string'
-            //     console.error('this field must be a string')
-            // }
         return {valid: valid, message: message}
     }
     
