@@ -1,36 +1,29 @@
-import {Validate, AbstractModel, PatternValidator} from "../Application.Common/Model"
+import {Validate, AbstractModel, PatternValidator, RequiredValidator, TypeValidator} from "../Application.Common/Model"
 
 export class TodoModel extends AbstractModel{
     constructor (json: JSON) {
         super(json);    
     }
     
-    private _id: string;
-    private _value: string;
-    private _done: boolean;
-    
-    get id(): string {
-        return this._id;
-    }
-    set id(value) {
-        this._id = value;
-    } 
+    @Validate({
+        validators: [
+            RequiredValidator(),
+            TypeValidator('string'),
+            PatternValidator(/^[a-zA-Z0-9]+$/)]
+    })
+    id: string;
     
     @Validate({
-        validators: [PatternValidator(/^[a-zA-Z]+$/)],
+        validators: [
+            RequiredValidator(),
+            TypeValidator('string')]
     })
-    get value(): string {
-        return this._value;
-    }
-    set value(val) {
-        this._value = val;
-    } 
+    value: string;
     
-  
-    get done(): boolean {
-        return this._done;
-    }
-    set done(value) {
-        this._done = value;
-    } 
+    @Validate({
+        validators: [
+            RequiredValidator(),
+            TypeValidator('boolean')]
+    })
+    done: boolean;
 }
