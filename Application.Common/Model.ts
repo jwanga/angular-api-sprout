@@ -1,12 +1,20 @@
 
 export class AbstractModel {
     constructor (json: JSON) {
-        Object.keys(json).forEach((key) => {
-            this[key] = (<{[index: string]: any;}>json)[key];
-        })
+        let keys = Object.keys(json);
+        
+        if(keys) {
+            keys.forEach((key) => {
+                this[key] = (<{[index: string]: any;}>json)[key];
+            });
+        }
     }
     
-    validations: Array<{key: PropertyKey, valid: boolean, message: string}>;
+    /**
+     * Holds a list of all properties to be validated.
+     */
+    properties: Array<{key: string, metadata: IValidateMetaData}>
+    
     [index: string]: any;
     
     /**
@@ -14,14 +22,23 @@ export class AbstractModel {
      * @return {{valid: boolean; message: string}} An object indicating the validity of a model and any validation messages.
      */
     public getValidity () : {valid: boolean; message: string}{
-        let valid: boolean, message: string = ""
+        let valid: boolean = true, message: string = ""
         
-        valid = this.validations.every((validation) => {
-            if(validation.message && validation.message.length > 0){
-                message += validation.message + '; '
-            }
-            return validation.valid;
-        })
+        if(this.properties){
+            this.properties.forEach((property, index) => {
+                if(property.metadata && property.metadata.validators){
+                    property.metadata.validators.forEach((validator) => {
+                        let validity = validator(property.key, this[property.key]);
+                        
+                        if(validity.message && validity.message.length > 0){
+                            message += validity.message  + ', '
+                        }
+                        
+                        valid = valid && validity.valid;
+                    })
+                }
+            })
+        }
         
         return {valid: valid, message: message }
     }
@@ -36,65 +53,94 @@ export interface IValidateMetaData{
 }
 
 /**
- * Decorates AbstractModel setters and accepts metadate defining the validations to be perfomed
- * when the property is set.
- * @param {IValidateMetaData} metadata Defines the validations to be perfomed.
- */
-export function Validate (metadata: IValidateMetaData) {
-    return (target: AbstractModel, key: PropertyKey, descriptor: PropertyDescriptor) => {
-        let setter = descriptor.set; 
-        
-        descriptor.set = function(value) {
-            //store "this" as "instance" to gain type info.
-            let instance: AbstractModel = this;
-                
-            setter.call(instance, value);
-            
-            instance.validations = instance.validations || [];
-            
-            let existingValidation = instance.validations.find((validation) => {
-                return validation.key === key;
-            });
-            
-            
-            if(!existingValidation){
-                existingValidation = {key :key, valid: false, message: ''}
-                instance.validations.push(existingValidation);
-            }
-            
-            //validate
-            existingValidation.valid = metadata.validators.every((validator) => {
-                let validity = validator(key, value);
-                if(validity.message){
-                    existingValidation.message = validity.message;
-                }
-                return validity.valid;  
-            });
-        }
-    }
-}
-
-/**
  * Defines the signature of validator functions
  */
 export interface IValidator {
         (key: PropertyKey, value: any): {valid: boolean, message: string};
 }
 
+/**
+ * Decorates AbstractModel setters and accepts metadate defining the validations to be perfomed
+ * when the property is set.
+ * @param {IValidateMetaData} metadata Defines the validations to be perfomed.
+ */
+export function Validate (metadata: IValidateMetaData) {
+    return function Test(target: AbstractModel, key:PropertyKey)  { 
+        let keyString = key.toString();
+        target.properties = target.properties || []
+        
+        if(!target.properties.find((validation) => {
+            return validation.key === keyString;
+        })) {
+            target.properties.push({key: keyString, metadata: metadata})
+        }
+    }
+}
+
+/**
+ * Validates that a property matches the passed regular expression.
+ * @param {RegExp} pattern The regular expresion to validate the property.
+ * @return {IValidator} A validator function.
+ */
 export function PatternValidator(pattern: RegExp): IValidator {
     let validator: IValidator = (key, value) => {
         let valid: boolean, message: string;
-            
-            //check to ensure that te value is a string.
-            if (typeof value === 'string'){
+            if(value === null || value === undefined){
+                //if the value is null or undefined it is valid because we leave null checks
+                //to the required validator.
+                valid = true;    
+            }
+            else {
+                //check to ensure that te value is a string.
                 valid = pattern.test(value);
                 message = valid ? null : key.toString() + ' must match the pattern ' + pattern;
-            } else {
+            } 
+            // else {
+            //     valid = false
+            //     message = key.toString() + ' must be a string'
+            //     console.error('this field must be a string')
+            // }
+        return {valid: valid, message: message}
+    }
+    
+    return validator;
+}
+
+/**
+ * Validates that a property in not null, undefined, or an empty string.
+ * @return {IValidator} A validator function.
+ */
+export function RequiredValidator(): IValidator {
+    let validator: IValidator = (key, value) => {
+        let valid: boolean, message: string;
+            
+            if(value === null || value === undefined || (typeof value === 'string' && value.trim().length === 0)){
                 valid = false
-                message = key.toString() + ' must be a string,'
-                console.error('this field must be a string')
+                message = key.toString() + ' is required'
+            }else{
+                valid = true;
             }
-        console.log(valid, value, pattern);
+        return {valid: valid, message: message}
+    }
+    
+    return validator;
+}
+
+/**
+ * Validates that a property is of the specified type.
+ * @param {string} type The type to validate against.
+ * @return {IValidator} A validator function.
+ */
+export function TypeValidator(type: string): IValidator {
+    let validator: IValidator = (key, value) => {
+        let valid: boolean, message: string;
+            
+            valid = typeof(value) === type;
+            
+            if(!valid){
+                message = key.toString() + ' must be a ' + type;
+            }
+            
         return {valid: valid, message: message}
     }
     

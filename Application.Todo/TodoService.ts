@@ -22,7 +22,6 @@ export class TodoService {
             model = new TodoModel(json),
             validity = model.getValidity();
             
-            
         console.log('service update', model);
         
         if(validity.valid){ 
