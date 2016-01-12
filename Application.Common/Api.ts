@@ -11,7 +11,7 @@ import {IStatus} from "../Application.Common/IStatus";
 /**
  * Defines the members used in creating an API service
  */
-export class AbstractApi implements IApiMetaData{
+export class AbstractApi<T> implements IApiMetaData{
     constructor(frameworkService: FrameworkService) {
        this.registerActions(frameworkService);
     }
@@ -24,7 +24,7 @@ export class AbstractApi implements IApiMetaData{
             frameworkService.on(this.route + action.metadata.route).subscribe((response) => {
                 
                 
-                (<Observable<IStatus>> action.callback.call(this ,response.body)).subscribe((status) => {
+                (<Observable<IStatus<T>>> action.callback.call(this ,response.body)).subscribe((status) => {
                     response.callback(status)
                 }, (status) => {
                     response.callback(status)
@@ -37,7 +37,7 @@ export class AbstractApi implements IApiMetaData{
     }
     
     route: string;
-    actions: Array<IAction>;
+    actions: Array<IAction<T>>;
     [index: string]: any;
     
 }
@@ -59,9 +59,9 @@ export interface IActionMetaData{
 /**
  * Defines the an action.
  */
-export interface IAction{ 
+export interface IAction<T>{ 
     metadata: IActionMetaData; 
-    callback: (model: JSON) =>  Observable<IStatus>;
+    callback: (model: JSON) =>  Observable<IStatus<T>>;
 }
 
 /**
@@ -78,8 +78,8 @@ export function Api (metadata: IApiMetaData) {
  * Decorates a dispatcher function as an API action.
  * @param {IActionMetaData} metadata Describes the details of the action.
  */
-export function Action (metadata: IActionMetaData) {
-    return (target: AbstractApi, key: string, descriptor: PropertyDescriptor) => {
+export function Action<T> (metadata: IActionMetaData) {
+    return (target: AbstractApi<T>, key: string, descriptor: PropertyDescriptor) => {
         
         //crate the actions collection if it doesn't exist.
         target.actions = target.actions || [];

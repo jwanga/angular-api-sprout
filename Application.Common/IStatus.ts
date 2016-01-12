@@ -1,7 +1,7 @@
 /**
  * Describes the status of data calls within the application using HTTP status codes.
  */
-export interface IStatus{
+export interface IStatus<T>{
     
     /**
      * The HTTP status code. The complete llist of codes is found here:
@@ -12,10 +12,15 @@ export interface IStatus{
     /**
      * The custom message describing the status.
      */
-    message: string;
+    message?: string;
     
     /**
      * Indicates wether the status belongs to the success class.
      */
     success: boolean;
+    
+    /**
+     * Optional data payload;
+     */
+    data?: T;
 }
