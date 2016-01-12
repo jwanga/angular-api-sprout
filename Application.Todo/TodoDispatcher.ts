@@ -6,6 +6,7 @@ import {TodoModel} from "./TodoModel";
 import {Api, AbstractApi, Action} from "../Application.Common/Api";
 import {FrameworkService} from "../Application.Framework/FrameworkService";
 import {IStatus} from "../Application.Common/IStatus";
+import {AbstractModel, IModel} from "../Application.Common/Model"
 
 
 
@@ -13,24 +14,25 @@ import {IStatus} from "../Application.Common/IStatus";
     route: '/todo'
 })
 @Injectable()
-export class TodoDispatcher extends AbstractApi {
+export class TodoDispatcher extends AbstractApi<TodoModel>  {
     constructor(private todoService: TodoService, frameworkService: FrameworkService){
         super(frameworkService);
-        this.todoService = todoService;
     }
     
     /**
      * Creates a Todo model.
-     * @param {JSON} json The json representation of the model be created.
+     * @param {IModel} json - The json representation of the model be created.
+     * @return {<Status<TodoModel>} A status message.
      */
-    @Action({
+    @Action<TodoModel>({
         route: '/create'
     })
-    create(json: JSON): Observable<IStatus> {
-        let subject = new ReplaySubject<IStatus>(1);
+    create(json: IModel): Observable<IStatus<TodoModel>> {
+        let subject = new ReplaySubject<IStatus<TodoModel>>(1);
         
         this.todoService.create(json).subscribe((status) => {
             subject.next(status);
+            console.log(status);
         }, (status) => {
             subject.error(status);
         }, () => {

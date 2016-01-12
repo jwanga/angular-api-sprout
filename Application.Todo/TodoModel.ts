@@ -1,7 +1,7 @@
-import {Validate, AbstractModel, PatternValidator, RequiredValidator, TypeValidator} from "../Application.Common/Model"
+import {Validate, AbstractModel, IModel, PatternValidator, RequiredValidator, TypeValidator} from "../Application.Common/Model"
 
-export class TodoModel extends AbstractModel{
-    constructor (json: JSON) {
+export class TodoModel extends AbstractModel implements IModel{
+    constructor (json: IModel) {
         super(json);    
     }
     

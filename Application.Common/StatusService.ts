@@ -6,12 +6,12 @@ import {IStatus} from "./IStatus";
  * Defines all the statuses 
  */
 @Injectable()
-export class StatusService {
+export class StatusService<T> {
     constructor(){
     }
     
-    get OK(): IStatus{
-        let status: IStatus = {
+    get OK(): IStatus<T>{
+        let status: IStatus<T> = {
             code: 200,
             message: 'OK',
             success: true
@@ -20,8 +20,8 @@ export class StatusService {
         return Object.assign({}, status);
     }
     
-     get Created(): IStatus{
-        let status: IStatus = {
+     get Created(): IStatus<T>{
+        let status: IStatus<T> = {
             code: 201,
             message: 'Created',
             success: true
@@ -30,10 +30,20 @@ export class StatusService {
         return Object.assign({}, status);
     }
     
-    get BadRequest(): IStatus{
-        let status: IStatus = {
+    get BadRequest(): IStatus<T>{
+        let status: IStatus<T> = {
             code: 400,
             message: 'Bad Request',
+            success: false
+        }
+        
+        return Object.assign({}, status);
+    }
+    
+    get InternalServerError(): IStatus<T>{
+        let status: IStatus<T> = {
+            code: 500,
+            message: 'Internal Server Error',
             success: false
         }
         

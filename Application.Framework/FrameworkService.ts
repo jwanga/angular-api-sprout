@@ -5,6 +5,7 @@ import {Injectable} from "angular2/core";
 import {ReplaySubject, Observable} from "rxjs";
 import {DataService} from "../Application.Common/DataService";
 import {IStatus} from "../Application.Common/IStatus";
+import {IModel} from "../Application.Common/Model"
 
 /**
  * Instantiates the specific framework that will run the API
@@ -27,12 +28,12 @@ export class FrameworkService {
      * @param {string} route The route to listen to.
      * @return {Observable<IFrameworkServiceResponse>} An observable that resolves to a IFrameworkServiceResponse.
      */
-    on(route: string): Observable<IFrameworkServiceResponse> {
+    on<T>(route: string): Observable<IFrameworkServiceResponse<T>> {
         
-        let subject = new ReplaySubject<IFrameworkServiceResponse>(1);
+        let subject = new ReplaySubject<IFrameworkServiceResponse<T>>(1);
         
         this.framework.route(route).post((request: any, response: any) => {
-            let frameworkResponse: IFrameworkServiceResponse = {
+            let frameworkResponse: IFrameworkServiceResponse<T> = {
                     body: request.body,
                     callback: (status) => {
                         let code = status.code,
@@ -53,9 +54,9 @@ export class FrameworkService {
 /**
  * Defines the 
  */
-export interface IFrameworkServiceResponse {
-    body: JSON;
-    callback: (status: IStatus) => void;
+export interface IFrameworkServiceResponse<T> {
+    body: IModel;
+    callback: (status: IStatus<T>) => void;
 }
 
 

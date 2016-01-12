@@ -1,6 +1,6 @@
 
 export class AbstractModel {
-    constructor (json: JSON) {
+    constructor (json: IModel) {
         let keys = Object.keys(json);
         
         if(keys) {
@@ -27,7 +27,6 @@ export class AbstractModel {
         
         if(this.properties){
             this.properties.forEach((property, index) => {
-                console.log(properties)
                 //if the properties parameter hasbeen passed then only validate properties that appear in the properties list.
                 if((properties && properties.indexOf(property.key) > -1) || ( !properties && property.metadata && property.metadata.validators)){
                     property.metadata.validators.forEach((validator) => {
@@ -45,6 +44,10 @@ export class AbstractModel {
         
         return {valid: valid, message: message }
     }
+}
+
+export interface IModel{
+    id: string;
 }
 
 /**
