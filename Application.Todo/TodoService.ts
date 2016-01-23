@@ -16,7 +16,7 @@ export class TodoService {
     /**
      * Creates a Todo Model.
      * @param {IModel} model - The json representation of the model to be created.
-     *  @return {Observable<IStatus<TodoModel>>} An observable that resolves to a status object with a TodoModel payload.
+     * @return {Observable<IStatus<TodoModel>>} An observable that resolves to a status object with a TodoModel payload.
      */
     create(json: IModel): Observable<IStatus<TodoModel>> {
         let subject = new ReplaySubject(1),
