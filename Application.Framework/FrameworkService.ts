@@ -5,16 +5,16 @@ import * as http from 'http';
 
 import {Injectable} from "angular2/core";
 import {ReplaySubject, Observable} from "rxjs";
-import {DataService} from "../Application.Common/DataService";
-import {IStatus} from "../Application.Common/IStatus";
+import {IPayload} from "../Application.Common/IPayload";
 import {AbstractModel, IModel} from "../Application.Common/Model"
+import {StatusService} from "../Application.Common/StatusService";
 
 /**
  * Instantiates the specific framework that will run the API
  */
 @Injectable()
 export class FrameworkService {
-    constructor(private dataService: DataService){
+    constructor(private statusService: StatusService){
         
         this.staticServer.use(bodyParser.json()); 
          this.staticServer.use('/', express.static('./'));
@@ -24,47 +24,37 @@ export class FrameworkService {
         });
         
         this.socketServer.on('connection', (socket) => {
-            console.log('connection');
-            this.socket = socket;
+            this.socketConnectionSubject.next(socket);
         });    
-        
-        // setInterval(() => {
-        //     if(this.socket){
-        //         console.log('emit');
-        //         this.socket.emit('todo', {foo:'bar'});
-        //     }
-        // }, 2000);
     }
     
     private staticServer = express();  
     private server = http.createServer(this.staticServer);
     private socketServer = io(this.server);
-    private socket: SocketIO.Socket;
+    private socketConnectionSubject = new ReplaySubject<SocketIO.Socket>(0);
     
     /**
      * Creates a new route and returns an observable that resolves when a post is made to the specified route.
      * @param {string} route - The route to listen to.
      * @return {Observable<IFrameworkServiceResponse>} An observable that resolves to a IFrameworkServiceResponse.
      */
-    registerAction<T>(route: string): Observable<IFrameworkServiceResponse<T>> {
+    registerAction<T>(route: string): Observable<IPayload<T>> {
         
-        let subject = new ReplaySubject<IFrameworkServiceResponse<T>>(1);
-        
-        this.staticServer.route(route).post((request: any, response: any) => {
-            let frameworkResponse: IFrameworkServiceResponse<T> = {
-                    body: request.body,
-                    callback: (status) => {
-                        let code = status.code,
-                            body = {
-                                message: status.message
-                            };
-                            
-                        response.status(code).send(body);   
+        let subject = new ReplaySubject<IPayload<T>>(1);
+            
+            //register the action after the socket has connected.
+            this.socketConnectionSubject.subscribe((socket) => {
+                socket.on(route, (data: any) => {
+                    let payload: IPayload<any> = {
+                        sessionId:socket.id,
+                        status: this.statusService.OK,
+                        data: data
                     }
-                }
-                
-            subject.next(frameworkResponse);
-        });
+                    
+                    subject.next(payload)
+                });
+            });
+            
         return subject;
     }
     
@@ -72,13 +62,19 @@ export class FrameworkService {
      * Publishes an event.
      * @template T
      * @param {string} route - The channel on which the event will be published.
-     * @param {IStatus<T>} status - A status obbect wi a payload of type T  
+     * @param {IPayload<T>} status - A payload object with a payload of type T  
      */
-    publishEvent<T>(route:string, status: IStatus<T>){
-        if(status.success){
-            this.socket.emit(route, JSON.stringify(status.data));    
+    publishEvent<T>(route:string, payload: IPayload<T>){
+        if(payload.status.success){
+            
+            //Publish to the socket matching the session in the payload.
+            if (this.socketServer.sockets.connected[payload.sessionId]) {
+                this.socketServer.sockets.connected[payload.sessionId].emit(route, payload.data);
+            }  else {
+              console.error('There is no connected socket with the id in the payload', payload);   
+            }
         } else{
-            console.error(status);
+            console.error(payload); 
         }
     }
 }
@@ -88,7 +84,7 @@ export class FrameworkService {
  */
 export interface IFrameworkServiceResponse<T> {
     body: IModel;
-    callback: (status: IStatus<T>) => void;
+    callback: (payload: IPayload<T>) => void;
 }
 
 

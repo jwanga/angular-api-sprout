@@ -6,7 +6,7 @@ import {FrameworkService} from "../Application.Framework/FrameworkService";
 import {TodoService} from "../Application.Todo/TodoService";
 import {TodoDispatcher} from "../Application.Todo/TodoDispatcher";
 import {TodoModel} from "../Application.Todo/TodoModel";
-import {IStatus} from "../Application.Common/IStatus";
+import {IPayload} from "../Application.Common/IPayload";
 
 /**
  * Defines the members used in creating an API service
@@ -24,12 +24,12 @@ export class AbstractApi<T> implements IApiMetaData{
     private registerActions(frameworkService: FrameworkService) {
         
         this.actions.forEach((action) => {
-            frameworkService.registerAction(this.route + action.metadata.route).subscribe((response) => {
+            frameworkService.registerAction(this.route + action.metadata.route).subscribe((payload) => {
                 
-                (<Observable<IStatus<T>>> action.callback.call(this ,response.body)).subscribe((status) => {
-                    response.callback(status)
-                }, (status) => {
-                    response.callback(status)
+                (<Observable<IPayload<T>>> action.callback.call(this ,payload)).subscribe((actionPayload) => {
+               
+                }, (payload) => {
+                    //call error on frameworkservice
                 });
                 
             }, (error) => {
@@ -44,9 +44,9 @@ export class AbstractApi<T> implements IApiMetaData{
     private registerEvents(frameworkService: FrameworkService) {
         this.events.forEach((event) => {
            
-            (<Observable<IStatus<T>>> event.callback.call(this)).subscribe((status) => {
+            (<Observable<IPayload<T>>> event.callback.call(this)).subscribe((payload) => {
                 
-                frameworkService.publishEvent(event.metadata.route, status)
+                frameworkService.publishEvent(this.route + event.metadata.route, payload)
                 
             });
         })
@@ -86,7 +86,7 @@ export interface IEventMetaData{
  */
 export interface IAction<T>{ 
     metadata: IActionMetaData; 
-    callback: (model: JSON) =>  Observable<IStatus<T>>;
+    callback: (model: JSON) =>  Observable<IPayload<T>>;
 }
 
 /**
@@ -94,7 +94,7 @@ export interface IAction<T>{
  */
 export interface IEvent<T>{ 
     metadata: IEventMetaData; 
-    callback: () =>  Observable<IStatus<T>>;
+    callback: () =>  Observable<IPayload<T>>;
 }
 
 /**

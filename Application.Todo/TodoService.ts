@@ -2,54 +2,61 @@ import {Injectable} from "angular2/core";
 import {ReplaySubject, Observable} from "rxjs";
 import {DataService} from "../Application.Common/DataService";
 import {StatusService} from "../Application.Common/StatusService";
-import {IStatus} from "../Application.Common/IStatus";
+import {IPayload} from "../Application.Common/IPayload";
 import {TodoModel} from "./TodoModel";
 import {AbstractModel, IModel} from "../Application.Common/Model"
 
 @Injectable()
 export class TodoService {
     
-    constructor(private dataService: DataService, private statusService: StatusService<TodoModel>){
+    constructor(private dataService: DataService, private statusService: StatusService){
     }
     
     
     /**
      * Creates a Todo Model.
-     * @param {IModel} model - The json representation of the model to be created.
-     * @return {Observable<IStatus<TodoModel>>} An observable that resolves to a status object with a TodoModel payload.
+     * @param {IPayload<any>} requestPayload - The json representation of the model to be created.
+     * @return {Observable<IPayload<TodoModel>>} An observable that resolves to a status object with a TodoModel payload.
      */
-    create(json: IModel): Observable<IStatus<TodoModel>> {
-        let subject = new ReplaySubject(1),
-            status: IStatus<TodoModel>,
-            model = new TodoModel(json),
-            validity = model.getValidity(['value','done']);
+    create(requestPayload: IPayload<IModel>): Observable<IPayload<TodoModel>> {
+        let subject = new ReplaySubject<IPayload<TodoModel>>(1),
+            validationPayload: IPayload<TodoModel> = {
+                sessionId: requestPayload.sessionId,
+                status: this.statusService.OK,
+                data: new TodoModel(requestPayload.data)
+            },
+            
+            validity = validationPayload.data.getValidity(['value','done']);
         
         if(!validity.valid) { 
-            status = this.statusService.BadRequest
-            status.message = validity.message;
+            validationPayload.status = this.statusService.BadRequest
+            validationPayload.status.message = validity.message;
         }
         
-        if(status && !status.success){
-            subject.error(status)
+        if(validationPayload && validationPayload.status && !validationPayload.status.success){
+            subject.error(validationPayload)
         } else {
-            this.dataService.create<TodoModel>(model).subscribe((status) => {
-                let model = new TodoModel(status.data),
+            this.dataService.create<TodoModel>(validationPayload).subscribe((successPayload) => {
+                let model = new TodoModel(successPayload.data),
                     validity = model.getValidity(),
-                    newStatus: IStatus<TodoModel>;
+                    responsePayload: IPayload<TodoModel> = {
+                        sessionId: successPayload.sessionId,
+                        status: this.statusService.OK
+                    };
                 
-                //If the model from the dataservice is valid, resolve a status with the valid model.
-                //Otherwise resolve a status with an internal server error.    
+                //If the model from the dataservice is valid, resolve a payload with the valid model.
+                //Otherwise resolve a payload with an internal server error.    
                 if(validity.valid){ 
-                    newStatus = this.statusService.OK; 
-                    newStatus.data = model; 
-                    subject.next(newStatus)
+                    responsePayload.status = this.statusService.OK; 
+                    responsePayload.data = model; 
+                    subject.next(responsePayload)
                 } else {
-                    newStatus = this.statusService.InternalServerError
-                    newStatus.message = validity.message;
-                    subject.error(newStatus)
+                    responsePayload.status = this.statusService.InternalServerError
+                    responsePayload.status.message = validity.message;
+                    subject.error(responsePayload)
                 }  
-            }, (status) => {
-                subject.error(status)
+            }, (errorPayload) => {
+                subject.error(errorPayload)
             }, () => {
                 subject.complete();
             });

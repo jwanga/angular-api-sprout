@@ -5,13 +5,13 @@ import {TodoService} from "./TodoService";
 import {TodoModel} from "./TodoModel";
 import {Api, AbstractApi, Action, Event} from "../Application.Common/Api";
 import {FrameworkService} from "../Application.Framework/FrameworkService";
-import {IStatus} from "../Application.Common/IStatus";
+import {IPayload} from "../Application.Common/IPayload";
 import {AbstractModel, IModel} from "../Application.Common/Model"
 
 
 
 @Api({
-    route: '/todo'
+    route: 'todo'
 })
 @Injectable()
 export class TodoDispatcher extends AbstractApi<TodoModel>  {
@@ -19,34 +19,33 @@ export class TodoDispatcher extends AbstractApi<TodoModel>  {
         super(frameworkService);
     }
     
-    private onTodoSubject: ReplaySubject<IStatus<TodoModel>>;
+    private onTodoSubject: ReplaySubject<IPayload<TodoModel>>;
     
     @Event<TodoModel>({
-        route: 'todo'
+        route: '/onTodo'
     })
-    onTodo(): Observable<IStatus<TodoModel>> {
-        this.onTodoSubject = this.onTodoSubject || new ReplaySubject<IStatus<TodoModel>>(1);
+    onTodo(): Observable<IPayload<TodoModel>> {
+        this.onTodoSubject = this.onTodoSubject || new ReplaySubject<IPayload<TodoModel>>(1);
         
         return this.onTodoSubject;
     }
     
     /**
      * Creates a Todo model.
-     * @param {IModel} json - The json representation of the model be created.
-     * @return {Observable<IStatus<TodoModel>>} An observable that resolves to a status object with a TodoModel payload.
+     * @param {IPayload<IModel>} requestPayload - A payload containing the json representation of the model to be created.
+     * @return {Observable<IPayload<TodoModel>>} An observable that resolves to a payload object with a TodoModel payload.
      */
     @Action<TodoModel>({
         route: '/create'
     })
-    create(json: IModel): Observable<IStatus<TodoModel>> {
-        let subject = new ReplaySubject<IStatus<TodoModel>>(1);
+    create(requestPayload: IPayload<IModel>): Observable<IPayload<TodoModel>> {
+        let subject = new ReplaySubject<IPayload<TodoModel>>(1);
         
-        this.todoService.create(json).subscribe((status) => {
-            subject.next(status);
-            this.onTodoSubject.next(status)
-            console.log(status);
-        }, (status) => {
-            subject.error(status);
+        this.todoService.create(requestPayload).subscribe((responsePayload) => {
+            subject.next(responsePayload);
+            this.onTodoSubject.next(responsePayload)
+        }, (payload) => {
+            subject.error(payload);
         }, () => {
             subject.complete();
         });

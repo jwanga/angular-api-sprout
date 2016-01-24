@@ -2,17 +2,25 @@
     <head>
         <script src="/socket.io/socket.io.js"></script>
         <script>
-            var socket = io.connect('http://localhost:3002');
-            socket.on('todo', function (data) {
+            var socket = io.connect('http://localhost:3002'),
+                onCreate;
+                
+            socket.on('todo/onTodo', function (data) {
                 console.log(data);
             });
             
             socket.on('error', function (error) {
                 console.error('fooo', error);
             });
+            
+            onCreate = function() {
+                socket.emit('todo/create', {"value":"foobars","done":true})
+                console.log('foo');
+            }
+            
         </script>
     </head>
     <body>
-        test
+        <button onclick="onCreate()">test</button>
     </body>
 </html>

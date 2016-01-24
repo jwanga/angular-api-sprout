@@ -1,8 +1,7 @@
 /**
- * Describes the status of data calls within the application using HTTP status codes.
+ * Describes the status of payloads within the application using HTTP status codes.
  */
-export interface IStatus<T>{
-    
+export interface IStatus{ 
     /**
      * The HTTP status code. The complete llist of codes is found here:
      * http://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml
@@ -18,9 +17,4 @@ export interface IStatus<T>{
      * Indicates wether the status belongs to the success class.
      */
     success: boolean;
-    
-    /**
-     * Optional data payload;
-     */
-    data?: T;
 }
