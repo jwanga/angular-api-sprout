@@ -1,26 +1,87 @@
 <html>
     <head>
         <script src="/socket.io/socket.io.js"></script>
-        <script>
-            var socket = io.connect('http://localhost:3002'),
-                onCreate;
-                
-            socket.on('todo/onTodo', function (data) {
-                console.log(data);
-            });
-            
-            socket.on('error', function (error) {
-                console.error('fooo', error);
-            });
-            
-            onCreate = function() {
-                socket.emit('todo/create', {"value":"foobars","done":true})
-                console.log('foo');
+        <script src="https://code.jquery.com/jquery-2.2.0.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.1.1/js/tether.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.2/js/bootstrap.min.js"></script>
+        <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.2/css/bootstrap.min.css">
+        
+        <style>
+            .center {
+                margin: auto;
+                width: 30em;
+                padding: 10px;
             }
             
+            button:focus {
+                outline: none;
+            }
+            
+            #todo-input{
+                width: 100%;
+                margin-bottom: 2em;
+            }
+        </style>
+        
+        <script>
+            $(function () {
+                var socket = io.connect('http://localhost:3002'),
+                    todoList = $('#todo-list')
+                    
+                socket.on('todo/changed', function (todo) {
+                    var todoElement, exists;
+                    console.log('changed',todo)
+                    if(todo && todo.id){
+                        
+                        exists = $('#' + todo.id).length
+                        //If the item exists, use it. otherwise, add it.
+                        todoElement = exists ? $('#' + todo.id) : $('<button id="' + todo.id + '" type="button" class="list-group-item todo-list-item"></button>').appendTo(todoList);
+                        
+                        todoElement.text(todo.value)
+                                   .toggleClass('list-group-item-success', todo.done)
+                                   
+                         
+                         if(!exists) { 
+                            todoElement.click(function(e) {
+                                var todoElement = $(this),
+                                    todoItem = {id: todoElement.attr('id'), value: todoElement.text(), "done": !todoElement.hasClass('list-group-item-success')}
+                                    
+                                socket.emit('todo/update', todoItem);
+                            })
+                         }   
+                        
+                    } else {
+                        console.error('The todo object  requires an id', todo);
+                    }
+                    
+                });
+                
+                socket.on('onError', function (error) {
+                    console.error(error);
+                });
+                
+                //When the enter is pressed insite the todo input, call the create action.
+                $('#todo-input').keyup(function(e){
+                    var value = $(this).val()
+                    if(e.keyCode == 13) {
+                        //clear the text
+                        $(this).val('');
+                        
+                        //call the action
+                        socket.emit('todo/create', {"value": value, "done":false})
+                    }
+                });
+            });
         </script>
     </head>
     <body>
-        <button onclick="onCreate()">test</button>
+        <div class="center">
+            
+            <input type="text" id="todo-input" class="form-control" placeholder="Add a todo and press enter"/>
+
+            <div id="todo-list" class="list-group">
+            </div>
+            
+        </div>
     </body>
 </html>

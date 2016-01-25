@@ -40,6 +40,16 @@ export class StatusService {
         return Object.assign({}, status);
     }
     
+     get NotFound(): IStatus{
+        let status: IStatus = {
+            code: 404,
+            message: 'Not Found',
+            success: false
+        }
+        
+        return Object.assign({}, status);
+    }
+    
     get InternalServerError(): IStatus{
         let status: IStatus = {
             code: 500,

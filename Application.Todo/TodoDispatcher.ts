@@ -22,7 +22,7 @@ export class TodoDispatcher extends AbstractApi<TodoModel>  {
     private onTodoSubject: ReplaySubject<IPayload<TodoModel>>;
     
     @Event<TodoModel>({
-        route: '/onTodo'
+        route: '/changed'
     })
     onTodo(): Observable<IPayload<TodoModel>> {
         this.onTodoSubject = this.onTodoSubject || new ReplaySubject<IPayload<TodoModel>>(1);
@@ -42,6 +42,28 @@ export class TodoDispatcher extends AbstractApi<TodoModel>  {
         let subject = new ReplaySubject<IPayload<TodoModel>>(1);
         
         this.todoService.create(requestPayload).subscribe((responsePayload) => {
+            subject.next(responsePayload);
+            this.onTodoSubject.next(responsePayload)
+        }, (payload) => {
+            subject.error(payload);
+        }, () => {
+            subject.complete();
+        });
+        
+        return subject;
+    }
+    
+     /**
+     * Updates a Todo model.
+     * @param {IPayload<IModel>} requestPayload - A payload containing the json representation of the model to be updated.
+     * @return {Observable<IPayload<TodoModel>>} An observable that resolves to a payload object with a TodoModel payload.
+     */
+    @Action<TodoModel>({
+        route: '/update'
+    })
+    update(requestPayload: IPayload<IModel>): Observable<IPayload<TodoModel>> {
+        let subject = new ReplaySubject<IPayload<TodoModel>>(1);
+        this.todoService.update(requestPayload).subscribe((responsePayload) => {
             subject.next(responsePayload);
             this.onTodoSubject.next(responsePayload)
         }, (payload) => {

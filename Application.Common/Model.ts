@@ -18,8 +18,8 @@ export class AbstractModel {
     [index: string]: any;
     
     /**
-     * returns the validity of a model and any valididation mesasges
-     * @param {Array<string>} properties An optional collection of properties to validate.
+     * returns the validity of a model and any valididation mesasges.
+     * @param {Array<string>} properties - An optional collection of properties to validate instead of all properties.
      * @return {{valid: boolean; message: string}} An object indicating the validity of a model and any validation messages.
      */
     public getValidity (properties?: Array<string>) : {valid: boolean; message: string}{
@@ -27,7 +27,7 @@ export class AbstractModel {
         
         if(this.properties){
             this.properties.forEach((property, index) => {
-                //if the properties parameter hasbeen passed then only validate properties that appear in the properties list.
+                //if the properties parameter has been passed then only validate properties that appear in the properties list.
                 if((properties && properties.indexOf(property.key) > -1) || ( !properties && property.metadata && property.metadata.validators)){
                     property.metadata.validators.forEach((validator) => {
                         let validity = validator(property.key, this[property.key]);
@@ -85,7 +85,7 @@ export function Validate (metadata: IValidateMetaData) {
 
 /**
  * Validates that a property matches the passed regular expression.
- * @param {RegExp} pattern The regular expresion to validate the property.
+ * @param {RegExp} pattern - The regular expresion to validate the property.
  * @return {IValidator} A validator function.
  */
 export function PatternValidator(pattern: RegExp): IValidator {
@@ -128,7 +128,7 @@ export function RequiredValidator(): IValidator {
 
 /**
  * Validates that a property is of the specified type.
- * @param {string} type The type to validate against.
+ * @param {string} type - The type to validate against.
  * @return {IValidator} A validator function.
  */
 export function TypeValidator(type: string): IValidator {

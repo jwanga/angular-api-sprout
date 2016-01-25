@@ -65,16 +65,16 @@ export class FrameworkService {
      * @param {IPayload<T>} status - A payload object with a payload of type T  
      */
     publishEvent<T>(route:string, payload: IPayload<T>){
-        if(payload.status.success){
-            
-            //Publish to the socket matching the session in the payload.
-            if (this.socketServer.sockets.connected[payload.sessionId]) {
-                this.socketServer.sockets.connected[payload.sessionId].emit(route, payload.data);
-            }  else {
-              console.error('There is no connected socket with the id in the payload', payload);   
+        if (this.socketServer.sockets.connected[payload.sessionId]) {
+            if(payload.status.success){
+                //Publish to the socket matching the session in the payload.
+                this.socketServer.sockets.connected[payload.sessionId].emit(route, payload.data);     
+            } else{
+                this.socketServer.sockets.connected[payload.sessionId].emit('onError', payload.status);
+                console.error(payload); 
             }
-        } else{
-            console.error(payload); 
+        }  else {
+            console.error('There is no connected socket with the id in the payload', payload);   
         }
     }
 }

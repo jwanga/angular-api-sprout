@@ -12,6 +12,26 @@ export class TodoService {
     constructor(private dataService: DataService, private statusService: StatusService){
     }
     
+    private validateDataservicePayload(subject: ReplaySubject<IPayload<TodoModel>>, successPayload: IPayload<IModel>){
+        let model = new TodoModel(successPayload.data),
+            validity = model.getValidity(),
+            responsePayload: IPayload<TodoModel> = {
+                sessionId: successPayload.sessionId,
+                status: this.statusService.OK
+            };
+        
+        //If the model from the dataservice is valid, resolve a payload with the valid model.
+        //Otherwise resolve a payload with an internal server error.    
+        if(validity.valid){ 
+            responsePayload.status = this.statusService.OK; 
+            responsePayload.data = model; 
+            subject.next(responsePayload)
+        } else {
+            responsePayload.status = this.statusService.InternalServerError
+            responsePayload.status.message = validity.message;
+            subject.error(responsePayload)
+        }      
+    }
     
     /**
      * Creates a Todo Model.
@@ -26,6 +46,7 @@ export class TodoService {
                 data: new TodoModel(requestPayload.data)
             },
             
+            //only validate the value and done properties because new items will not yet have an id.
             validity = validationPayload.data.getValidity(['value','done']);
         
         if(!validity.valid) { 
@@ -37,24 +58,43 @@ export class TodoService {
             subject.error(validationPayload)
         } else {
             this.dataService.create<TodoModel>(validationPayload).subscribe((successPayload) => {
-                let model = new TodoModel(successPayload.data),
-                    validity = model.getValidity(),
-                    responsePayload: IPayload<TodoModel> = {
-                        sessionId: successPayload.sessionId,
-                        status: this.statusService.OK
-                    };
-                
-                //If the model from the dataservice is valid, resolve a payload with the valid model.
-                //Otherwise resolve a payload with an internal server error.    
-                if(validity.valid){ 
-                    responsePayload.status = this.statusService.OK; 
-                    responsePayload.data = model; 
-                    subject.next(responsePayload)
-                } else {
-                    responsePayload.status = this.statusService.InternalServerError
-                    responsePayload.status.message = validity.message;
-                    subject.error(responsePayload)
-                }  
+                this.validateDataservicePayload(subject, successPayload); 
+            }, (errorPayload) => {
+                subject.error(errorPayload)
+            }, () => {
+                subject.complete();
+            });
+        }
+            
+        return subject;
+    }
+    
+    /**
+     * Updates a Todo Model.
+     * @param {IPayload<any>} requestPayload - The json representation of the model to be updated.
+     * @return {Observable<IPayload<TodoModel>>} An observable that resolves to a status object with a TodoModel payload.
+     */
+    update(requestPayload: IPayload<IModel>): Observable<IPayload<TodoModel>> {
+        let subject = new ReplaySubject<IPayload<TodoModel>>(1),
+            validationPayload: IPayload<TodoModel> = {
+                sessionId: requestPayload.sessionId,
+                status: this.statusService.OK,
+                data: new TodoModel(requestPayload.data)
+            },
+            
+            //validate all properties
+            validity = validationPayload.data.getValidity();
+        
+        if(!validity.valid) { 
+            validationPayload.status = this.statusService.BadRequest
+            validationPayload.status.message = validity.message;
+        }
+        
+        if(validationPayload && validationPayload.status && !validationPayload.status.success){
+            subject.error(validationPayload)
+        } else {
+            this.dataService.update<TodoModel>(validationPayload).subscribe((successPayload) => {
+                this.validateDataservicePayload(subject, successPayload);
             }, (errorPayload) => {
                 subject.error(errorPayload)
             }, () => {
