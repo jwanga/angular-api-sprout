@@ -1,3 +1,4 @@
+import {Type} from "angular2/core";
 
 export class AbstractModel {
     constructor (json: IModel) {
@@ -14,6 +15,11 @@ export class AbstractModel {
      * Holds a list of all properties to be validated.
      */
     properties: Array<{key: string, metadata: IValidateMetaData}>
+    
+    /**
+     * The collection that this model belongs to. Should onlube set by the Queryable decorator.
+     */
+    collection: string;
     
     [index: string]: any;
     
@@ -47,11 +53,30 @@ export class AbstractModel {
 }
 
 export interface IModel{
+    /**
+     * A unique string that all models must have
+     */
     id: string;
+    
+    /**
+     * The collection that this model belongs to. Should onlube set by the Queryable decorator.
+     */
+    collection: string;
 }
 
 /**
- * Defines the metadata used passed to the validator decorator.
+ * Defines the metadata passed to the queryable decorator.
+ */
+export interface IQueryableMetaData{ 
+    /**
+     * The collection that this model belongs to.
+     */
+    collection: string;
+    
+}
+
+/**
+ * Defines the metadata passed to the validator decorator.
  */
 export interface IValidateMetaData{ 
     validators: Array<IValidator>
@@ -63,6 +88,16 @@ export interface IValidateMetaData{
  */
 export interface IValidator {
         (key: PropertyKey, value: any): {valid: boolean, message: string};
+}
+
+/**
+ * Decorates a dispatcher and exposes it's members as a web service.
+ * @param {IApiMetaData} metadata Describes the details of the action.
+ */
+export function Queryable (metadata: IQueryableMetaData) {
+    return (target: Type) => {
+        target.prototype.collection = metadata.collection;
+    }
 }
 
 /**

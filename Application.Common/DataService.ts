@@ -9,12 +9,22 @@ export class DataService {
     constructor(private statusService: StatusService){
     }
     
-    private database: Array<IModel> = [];
+    private database: IModel[] = [<IModel>{ 
+        value: 'Release the hounds',
+        done: true,
+        collection: 'Todo',
+        id: '1454276093756' },  
+        <IModel>{ 
+        value: 'Feed the rabbits',
+        done: false,
+        collection: 'Todo',
+        id: '1454276093456' }
+    ];
     
     /**
      * Creates a new record in a datastore
      * @template T The model type.
-     * @param {IPayload<Tl>} requestPayload - A payload containing the model to be created.
+     * @param {IPayload<T>} requestPayload - A payload containing the model to be created.
      * @return {Observable<IPayload<IModel>>} An observable that resolves to a status object with a IModel json payload.
      */
     create<T extends AbstractModel>(requestPayload: IPayload<T>): Observable<IPayload<IModel>>{
@@ -24,7 +34,8 @@ export class DataService {
                 status: this.statusService.OK
             },
             json: IModel = JSON.parse(JSON.stringify(requestPayload.data));
-    
+            json.collection = requestPayload.data.collection
+        
         json.id = Date.now().toString();
         
         this.database.push(json);
@@ -41,7 +52,7 @@ export class DataService {
      /**
      * Updates a record in a datastore
      * @template T The model type.
-     * @param {IPayload<Tl>} requestPayload - A payload containing the model to be updated.
+     * @param {IPayload<T>} requestPayload - A payload containing the model to be updated.
      * @return {Observable<IPayload<IModel>>} An observable that resolves to a status object with a IModel json payload.
      */
     update<T extends AbstractModel>(requestPayload: IPayload<T>): Observable<IPayload<IModel>>{
@@ -51,20 +62,49 @@ export class DataService {
                 status: this.statusService.OK
             },
             json: IModel = JSON.parse(JSON.stringify(requestPayload.data)),
-            retrievedRecord: IModel;
+            index: number;
         
-        retrievedRecord = this.database.find((record) => {
+        
+        json.collection = requestPayload.data.collection
+        
+        index = this.database.findIndex((record) => {
             return record.id === json.id;
         });
         
-        if(retrievedRecord) {
-            retrievedRecord = json;
-            responsePayload.data = retrievedRecord;
+        if(index > -1) {
+            this.database[index] = json;
+            responsePayload.data = this.database[index];
             subject.next(responsePayload);
         } else{
             responsePayload.status = this.statusService.NotFound;
             subject.next(responsePayload);
         }
+        
+        
+        subject.complete();
+        
+        return subject;
+    }
+    
+     /**
+     * gets a collection from a datastore
+     * @param {IPayload<(value: IModel, index: number, array: IModel[]) => boolean>>} requestPayload - A payload containing a filter lamda to search with.
+     * @return {Observable<IPayload<IModel[]>>} An observable that resolves to a status object with a IModel json payload.
+     */
+    get(requestPayload: IPayload<(value: IModel, index: number, array: IModel[]) => boolean>): Observable<IPayload<IModel[]>>{
+        
+        let subject = new ReplaySubject<IPayload<IModel[]>>(0),
+            responsePayload: IPayload<IModel[]> = {
+                sessionId: requestPayload.sessionId,
+                status: this.statusService.OK
+            },
+            retrievedRecords: IModel[];
+            
+        
+        retrievedRecords = this.database.filter(requestPayload.data);
+        
+        responsePayload.data = retrievedRecords;
+        subject.next(responsePayload);
         
         subject.complete();
         

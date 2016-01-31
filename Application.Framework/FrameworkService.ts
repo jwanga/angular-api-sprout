@@ -66,17 +66,14 @@ export class FrameworkService {
      */
     publishEvent<T>(route:string, payload: IPayload<T>){
         if (this.socketServer.sockets.connected[payload.sessionId]) {
-            if(payload.status.success){
-                //Publish to the socket matching the session in the payload.
-                this.socketServer.sockets.connected[payload.sessionId].emit(route, payload.data);     
-            } else{
-                this.socketServer.sockets.connected[payload.sessionId].emit('onError', payload.status);
-                console.error(payload); 
-            }
+           
+            //Publish to the socket matching the session in the payload.
+            this.socketServer.sockets.connected[payload.sessionId].emit(route, payload.status.success ? payload.data : payload.status);     
+            
         }  else {
             console.error('There is no connected socket with the id in the payload', payload);   
         }
-    }
+    } 
 }
 
 /**

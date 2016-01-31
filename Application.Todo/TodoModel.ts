@@ -1,5 +1,8 @@
-import {Validate, AbstractModel, IModel, PatternValidator, RequiredValidator, TypeValidator} from "../Application.Common/Model"
+import {Validate, AbstractModel, IModel, PatternValidator, RequiredValidator, TypeValidator, Queryable} from "../Application.Common/Model"
 
+@Queryable({
+    collection: 'Todo'
+})
 export class TodoModel extends AbstractModel implements IModel{
     constructor (json: IModel) {
         super(json);    
