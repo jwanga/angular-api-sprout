@@ -5,6 +5,7 @@ import {TodoService} from "./TodoService";
 import {TodoModel} from "./TodoModel";
 import {Api, AbstractApi, Action, Event} from "../Application.Common/Api";
 import {FrameworkService} from "../Application.Framework/FrameworkService";
+import {StatusService} from "../Application.Common/StatusService";
 import {IPayload} from "../Application.Common/IPayload";
 import {IStatus} from "../Application.Common/IStatus";
 import {AbstractModel, IModel} from "../Application.Common/Model"
@@ -16,7 +17,7 @@ import {AbstractModel, IModel} from "../Application.Common/Model"
 })
 @Injectable()
 export class TodoDispatcher extends AbstractApi<TodoModel>  {
-    constructor(private todoService: TodoService, frameworkService: FrameworkService){
+    constructor(private todoService: TodoService, private frameworkService: FrameworkService, private statusService: StatusService){
         super(frameworkService);
     }
     
@@ -43,18 +44,25 @@ export class TodoDispatcher extends AbstractApi<TodoModel>  {
     
      /**
      * Initialize the session
-     * @param {IPayload<any>} requestPayload - A empty payload.
+     * @param {IPayload<any>} request - A empty payload.
      * @return {Observable<IPayload<TodoModel>>} An observable that resolves to an empty payload object.
      */
     @Action<any>({
         route: '/initialize'
     })
-    initialize(requestPayload: IPayload<any>): Observable<IPayload<TodoModel>> {
+    initialize(request: IPayload<any>): Observable<IPayload<TodoModel>> {
         let subject = new ReplaySubject<IPayload<any>>(1);
-        
-        this.todoService.getAllTodos(requestPayload).subscribe((getAllSuccessPayload) => {
-            this.onTodosUpdatedSubject.next(getAllSuccessPayload); 
-        });
+         //get all todos and retrigger the updated event
+            this.todoService.getAllTodos().subscribe((getAllSuccess) => {
+                
+                let response: IPayload<TodoModel[]> = {
+                    sessionId: request.sessionId,
+                    status: this.statusService.OK,
+                    data: getAllSuccess
+                }
+                
+                this.onTodosUpdatedSubject.next(response); 
+            });
         
         subject.next(null);
         
@@ -63,27 +71,48 @@ export class TodoDispatcher extends AbstractApi<TodoModel>  {
     
     /**
      * Creates a Todo model.
-     * @param {IPayload<IModel>} requestPayload - A payload containing the json representation of the model to be created.
+     * @param {IPayload<IModel>} request - A payload containing the json representation of the model to be created.
      * @return {Observable<IPayload<TodoModel>>} An observable that resolves to a payload object with a TodoModel payload.
      */
     @Action<TodoModel>({
         route: '/create'
     })
-    create(requestPayload: IPayload<IModel>): Observable<IPayload<TodoModel>> {
-        let subject = new ReplaySubject<IPayload<TodoModel>>(1);
-        
-        this.todoService.create(requestPayload).subscribe((successPayload) => {
-            subject.next(successPayload);
+    create(request: IPayload<IModel>): Observable<IPayload<TodoModel>> {
+        let subject = new ReplaySubject<IPayload<TodoModel>>(1),
+            response: IPayload<TodoModel>;
             
-            //get all todos and reigger the updated event
-            this.todoService.getAllTodos(successPayload).subscribe((getAllSuccessPayload) => {
-                this.onTodosUpdatedSubject.next(getAllSuccessPayload); 
+        this.todoService.create(request.data).subscribe((success) => {
+            
+            response = {
+                sessionId: request.sessionId,
+                status: this.statusService.Created,
+                data: success
+            }
+            
+            subject.next(response);
+            
+            //get all todos and retrigger the updated event
+            this.todoService.getAllTodos().subscribe((getAllSuccess) => {
+                let response: IPayload<TodoModel[]> = {
+                    sessionId: request.sessionId,
+                    status: this.statusService.OK,
+                    data: getAllSuccess
+                }
+                
+                this.onTodosUpdatedSubject.next(response); 
             });
             
-        }, (errorPayload) => {
-            console.error('TodoDispatcher.create', errorPayload);
-            this.onErrorSubject.next(errorPayload)
-            subject.error(errorPayload);
+        }, (error) => {
+            
+            response = {
+                sessionId: request.sessionId,
+                status: this.statusService.BadRequest,
+                error: <Error>error
+            }
+            
+            console.error('TodoDispatcher.create', error);
+            this.onErrorSubject.next(response)
+            subject.error(response);
         }, () => {
             subject.complete();
         });
@@ -93,26 +122,48 @@ export class TodoDispatcher extends AbstractApi<TodoModel>  {
     
      /**
      * Updates a Todo model.
-     * @param {IPayload<IModel>} requestPayload - A payload containing the json representation of the model to be updated.
+     * @param {IPayload<IModel>} request - A payload containing the json representation of the model to be updated.
      * @return {Observable<IPayload<TodoModel>>} An observable that resolves to a payload object with a TodoModel payload.
      */
     @Action<TodoModel>({
         route: '/update'
     })
-    update(requestPayload: IPayload<IModel>): Observable<IPayload<TodoModel>> {
-        let subject = new ReplaySubject<IPayload<TodoModel>>(1);
-        this.todoService.update(requestPayload).subscribe((successPayload) => {
-            subject.next(successPayload);
+    update(request: IPayload<IModel>): Observable<IPayload<TodoModel>> {
+        let subject = new ReplaySubject<IPayload<TodoModel>>(1),
+            response: IPayload<TodoModel>;
             
-            //get all todos and trigger the updated event
-            this.todoService.getAllTodos(successPayload).subscribe((getAllSuccessPayload) => {
-                this.onTodosUpdatedSubject.next(getAllSuccessPayload); 
+            
+        this.todoService.update(request.data).subscribe((success) => {
+            response = {
+                sessionId: request.sessionId,
+                status: this.statusService.Created,
+                data: success
+            }
+            
+            subject.next(response);
+            
+            //get all todos and retrigger the updated event
+            this.todoService.getAllTodos().subscribe((getAllSuccess) => {
+                let response: IPayload<TodoModel[]> = {
+                    sessionId: request.sessionId,
+                    status: this.statusService.OK,
+                    data: getAllSuccess
+                }
+                
+                this.onTodosUpdatedSubject.next(response); 
             });
             
-        }, (errorPayload) => {
-            this.onErrorSubject.next(errorPayload)
-            subject.error(errorPayload);
-            console.error('TodoDispatcher.update', errorPayload);
+        }, (error) => {
+            
+            response = {
+                sessionId: request.sessionId,
+                status: this.statusService.BadRequest,
+                error: <Error>error
+            }
+            
+            console.error('TodoDispatcher.update', error);
+            this.onErrorSubject.next(response)
+            subject.error(response);
         }, () => {
             subject.complete(); 
         });

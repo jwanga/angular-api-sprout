@@ -68,7 +68,7 @@ export class FrameworkService {
         if (this.socketServer.sockets.connected[payload.sessionId]) {
            
             //Publish to the socket matching the session in the payload.
-            this.socketServer.sockets.connected[payload.sessionId].emit(route, payload.status.success ? payload.data : payload.status);     
+            this.socketServer.sockets.connected[payload.sessionId].emit(route, payload.status.success ? payload.data : {status: payload.status, error: payload.error.message});     
             
         }  else {
             console.error('There is no connected socket with the id in the payload', payload);   

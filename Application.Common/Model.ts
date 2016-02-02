@@ -1,6 +1,6 @@
 import {Type} from "angular2/core";
 
-export class AbstractModel {
+export class AbstractModel implements IModel {
     constructor (json: IModel) {
         let keys = Object.keys(json);
         
@@ -16,6 +16,12 @@ export class AbstractModel {
      */
     properties: Array<{key: string, metadata: IValidateMetaData}>
     
+    
+    /**
+     * The unique identifier of this object
+     */
+    id: string;
+    
     /**
      * The collection that this model belongs to. Should onlube set by the Queryable decorator.
      */
@@ -26,9 +32,9 @@ export class AbstractModel {
     /**
      * returns the validity of a model and any valididation mesasges.
      * @param {Array<string>} properties - An optional collection of properties to validate instead of all properties.
-     * @return {{valid: boolean; message: string}} An object indicating the validity of a model and any validation messages.
+     * @return {IValidity} An object indicating the validity of a model and any validation messages.
      */
-    public getValidity (properties?: Array<string>) : {valid: boolean; message: string}{
+    public getValidity (properties?: Array<string>) : IValidity{
         let valid: boolean = true, message: string = ""
         
         if(this.properties){
@@ -62,6 +68,11 @@ export interface IModel{
      * The collection that this model belongs to. Should onlube set by the Queryable decorator.
      */
     collection: string;
+}
+
+export interface IValidity{
+    valid: boolean; 
+    message: string
 }
 
 /**

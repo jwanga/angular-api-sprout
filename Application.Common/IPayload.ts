@@ -22,4 +22,9 @@ export interface IPayload<T>{
      * Optional data payload.
      */
     data?: T;
+    
+    /**
+     * Optional error payload.
+     */
+    error?: Error;
 }

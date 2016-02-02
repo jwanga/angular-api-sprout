@@ -81,41 +81,7 @@
                         })
                     }
                 })
-                    
-                // socket.on('todo/changed', function (todo) {
-                //     var todoElement, todoDoneLabel, todoText, exists;
-                //     if(todo && todo.id){
-                        
-                //         exists = $('#' + todo.id).length
-                //         //If the item exists, use it. otherwise, add it.
-                //         todoElement = exists ? $('#' + todo.id) : $('<button id="' + todo.id + '" type="button" class="list-group-item todo-list-item"><span class="todo-list-item-text"></span><span class="label label-default label-pill pull-xs-right todo-list-item-done-label">done</span></button>').appendTo(todoList);
-                //         todoDoneLabel = todoElement.find('.todo-list-item-done-label');
-                //         todoText = todoElement.find('.todo-list-item-text');
-                        
-                //         todoElement.toggleClass('list-group-item-success', todo.done);
-                //         todoText.text(todo.value);
-                        
-                //         if(todo.done) {
-                //             todoDoneLabel.show(200);
-                //         } else {
-                //             todoDoneLabel.hide(200);
-                //         }
-                                  
-                //          if(!exists) { 
-                //             todoElement.click(function(e) {
-                //                 var todoElement = $(this),
-                //                     todoItem = {id: todoElement.attr('id'), value: todoElement.find('.todo-list-item-text').text(), "done": !todoElement.hasClass('list-group-item-success')}
-                                    
-                //                 socket.emit('todo/update', todoItem);
-                //             })
-                //          }   
-                        
-                //     } else {
-                //         console.error('The todo object  requires an id', todo);
-                //     }
-                    
-                // });
-                
+                 
                 socket.on('todo/error', function (error) {
                     console.error(error);
                     $("#todo-alert").alert().slideDown(200);

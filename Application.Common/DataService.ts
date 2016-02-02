@@ -1,7 +1,7 @@
 import {Injectable} from "angular2/core";
 import {StatusService} from "../Application.Common/StatusService";
 import {IPayload} from "./IPayload";
-import {ReplaySubject, Observable} from "rxjs";
+import {ReplaySubject, Subject, Observable} from "rxjs";
 import {AbstractModel, IModel} from "./Model"
 
 @Injectable()
@@ -24,25 +24,20 @@ export class DataService {
     /**
      * Creates a new record in a datastore
      * @template T The model type.
-     * @param {IPayload<T>} requestPayload - A payload containing the model to be created.
-     * @return {Observable<IPayload<IModel>>} An observable that resolves to a status object with a IModel json payload.
+     * @param {T} model - The model to be created.
+     * @return {Observable<IModel>} An observable that resolves to an IModel json payload.
      */
-    create<T extends AbstractModel>(requestPayload: IPayload<T>): Observable<IPayload<IModel>>{
-        let subject = new ReplaySubject<IPayload<IModel>>(0),
-            responsePayload: IPayload<IModel> = {
-                sessionId: requestPayload.sessionId,
-                status: this.statusService.OK
-            },
-            json: IModel = JSON.parse(JSON.stringify(requestPayload.data));
-            json.collection = requestPayload.data.collection
+    create<T extends AbstractModel>(model: T): Observable<IModel>{
+        let subject = new ReplaySubject<IModel>(0),
+            json: IModel = JSON.parse(JSON.stringify(model));
+            
+        json.collection = model.collection
         
         json.id = Date.now().toString();
         
         this.database.push(json);
         
-        responsePayload.data = json;
-        
-        subject.next(responsePayload);
+        subject.next(json);
         
         subject.complete();
         
@@ -52,20 +47,16 @@ export class DataService {
      /**
      * Updates a record in a datastore
      * @template T The model type.
-     * @param {IPayload<T>} requestPayload - A payload containing the model to be updated.
-     * @return {Observable<IPayload<IModel>>} An observable that resolves to a status object with a IModel json payload.
+     * @param {T} model - The model to be updated.
+     * @return {Observable<IModel>} An observable that resolves to an IModel json payload.
      */
-    update<T extends AbstractModel>(requestPayload: IPayload<T>): Observable<IPayload<IModel>>{
-        let subject = new ReplaySubject<IPayload<IModel>>(0),
-            responsePayload: IPayload<IModel> = {
-                sessionId: requestPayload.sessionId,
-                status: this.statusService.OK
-            },
-            json: IModel = JSON.parse(JSON.stringify(requestPayload.data)),
+    update<T extends AbstractModel>(model: T): Observable<IModel>{
+        let subject = new ReplaySubject<IModel>(0),
+            json: IModel = JSON.parse(JSON.stringify(model)),
             index: number;
         
         
-        json.collection = requestPayload.data.collection
+        json.collection = model.collection
         
         index = this.database.findIndex((record) => {
             return record.id === json.id;
@@ -73,13 +64,10 @@ export class DataService {
         
         if(index > -1) {
             this.database[index] = json;
-            responsePayload.data = this.database[index];
-            subject.next(responsePayload);
-        } else{
-            responsePayload.status = this.statusService.NotFound;
-            subject.next(responsePayload);
+            subject.next(this.database[index]);
+        } else {
+            subject.error(new Error('Id: ' + model.id) + ' not found');
         }
-        
         
         subject.complete();
         
@@ -88,24 +76,16 @@ export class DataService {
     
      /**
      * gets a collection from a datastore
-     * @param {IPayload<(value: IModel, index: number, array: IModel[]) => boolean>>} requestPayload - A payload containing a filter lamda to search with.
-     * @return {Observable<IPayload<IModel[]>>} An observable that resolves to a status object with a IModel json payload.
+     * @param {(value: IModel, index: number, array: IModel[]) => boolean} filter - A filter lamda to search with.
+     * @return {Observable<IModel[]>} An observable that resolves to an IModel array.
      */
-    get(requestPayload: IPayload<(value: IModel, index: number, array: IModel[]) => boolean>): Observable<IPayload<IModel[]>>{
-        
-        let subject = new ReplaySubject<IPayload<IModel[]>>(0),
-            responsePayload: IPayload<IModel[]> = {
-                sessionId: requestPayload.sessionId,
-                status: this.statusService.OK
-            },
+    get(filter: (value: IModel, index: number, array: IModel[]) => boolean): Observable<IModel[]>{
+        let subject = new ReplaySubject<IModel[]>(0),
             retrievedRecords: IModel[];
-            
         
-        retrievedRecords = this.database.filter(requestPayload.data);
+        retrievedRecords = this.database.filter(filter);
         
-        responsePayload.data = retrievedRecords;
-        subject.next(responsePayload);
-        
+        subject.next(retrievedRecords);
         subject.complete();
         
         return subject;
